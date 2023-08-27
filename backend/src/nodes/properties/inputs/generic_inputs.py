@@ -419,16 +419,32 @@ def VideoTypeDropdown() -> DropDownInput:
         input_type="VideoType",
         label="Video Type",
         options=[
-            {"option": "MP4", "value": "mp4"},
-            {"option": "MKV", "value": "mkv"},
-            {"option": "MKV (FFV1)", "value": "mkv-ffv1"},
-            {"option": "WEBM", "value": "webm"},
-            {"option": "AVI", "value": "avi"},
-            {"option": "GIF", "value": "gif"},
-            {"option": "None", "value": "none"},
+            {"option": "MKV", "value": "mkv"}
         ],
     )
 
+def VideoCodecDropdown() -> DropDownInput:
+    """Video Codec option dropdown"""
+    return DropDownInput(
+        input_type="VideoCodec",
+        label="Video Codec",
+        options=[
+            {"option": "x265", "value": "libx265"},
+            {"option": "x264", "value": "libx264"},
+            {"option": "None", "value": "none"}
+        ],
+    )
+
+def PixelFormatDropdown() -> DropDownInput:
+    """Pixel Format option dropdown"""
+    return DropDownInput(
+        input_type="PixelFormat",
+        label="Pixel Format",
+        options=[
+            {"option": "yuv420p", "value": "yuv420p"},
+            {"option": "yuv420p10le", "value": "yuv420p10le"}
+        ],
+    )
 
 def VideoPresetDropdown() -> DropDownInput:
     """Video Type option dropdown"""

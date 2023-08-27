@@ -21,6 +21,8 @@ from nodes.properties.inputs import (
     VideoFileInput,
     VideoPresetDropdown,
     VideoTypeDropdown,
+    VideoCodecDropdown,
+    PixelFormatDropdown
 )
 from nodes.properties.outputs import (
     DirectoryOutput,
@@ -38,16 +40,6 @@ VIDEO_ITERATOR_OUTPUT_NODE_ID = "chainner:image:simple_video_frame_iterator_save
 
 ffmpeg_path = os.environ.get("STATIC_FFMPEG_PATH", "ffmpeg")
 ffprobe_path = os.environ.get("STATIC_FFPROBE_PATH", "ffprobe")
-
-codec_map = {
-    "mp4": "libx264",
-    "avi": "libx264",
-    "mkv": "libx264",
-    "mkv-ffv1": "ffv1",
-    "webm": "libvpx-vp9",
-    "gif": "gif",
-}
-
 
 @dataclass
 class Writer:
@@ -90,6 +82,8 @@ def iterator_helper_load_frame_as_image_node(
         DirectoryInput("Output Video Directory", has_handle=True),
         TextInput("Output Video Name"),
         VideoTypeDropdown(),
+        VideoCodecDropdown(),
+        PixelFormatDropdown(),
         VideoPresetDropdown().with_docs(
             "For more information on presets, see [here](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset)."
         ),
@@ -105,6 +99,7 @@ def iterator_helper_load_frame_as_image_node(
         ).with_docs(
             "For more information on CRF, see [here](https://trac.ffmpeg.org/wiki/Encode/H.264#crf)."
         ),
+        TextInput("codec params"),
         BoolInput("Copy Audio", default=True).with_docs(
             "Due to the complexity of the way we use FFMPEG, copying the audio is done in a separate pass after the video is written.",
             "This isn't ideal, and sometimes fails. If it isn't working for you, use FFMPEG to mux the audio externally.",
@@ -118,8 +113,11 @@ def iterator_helper_write_output_frame_node(
     save_dir: str,
     video_name: str,
     video_type: str,
+    video_codec: str,
+    pixel_format:str,
     video_preset: str,
     crf: int,
+    codec_params:str,
     copy_audio: bool,
     writer: Writer,
     fps: float,
@@ -129,7 +127,9 @@ def iterator_helper_write_output_frame_node(
 
     h, w, _ = get_h_w_c(img)
 
-    if codec_map[video_type] == "libx264":
+    params_type = 'x264-params' if video_codec == "libx264" else 'x265-params'
+
+    if video_codec == "libx264":
         assert (
             h % 2 == 0 and w % 2 == 0
         ), f'The codec "libx264" used for video type "{video_type}" requires an even-number frame resolution.'
@@ -137,8 +137,6 @@ def iterator_helper_write_output_frame_node(
     if writer.out is None:
         try:
             extension = video_type
-            if video_type == "mkv-ffv1":
-                extension = "mkv"
             video_save_path = os.path.join(save_dir, f"{video_name}.{extension}")
             writer.out = (
                 ffmpeg.input(
@@ -150,12 +148,13 @@ def iterator_helper_write_output_frame_node(
                 )
                 .output(
                     video_save_path,
-                    pix_fmt="yuv420p",
+                    pix_fmt=pixel_format,
                     r=fps,
                     crf=crf,
                     preset=video_preset if video_preset != "none" else None,
-                    vcodec=codec_map[video_type],
+                    vcodec=video_codec,
                     movflags="faststart",
+                    **{params_type: codec_params}
                 )
                 .overwrite_output()
                 .run_async(pipe_stdin=True, cmd=ffmpeg_path)

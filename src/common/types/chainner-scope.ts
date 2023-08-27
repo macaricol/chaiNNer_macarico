@@ -100,6 +100,8 @@ struct RotateInterpolationMode;
 struct TileSize;
 struct VideoPreset;
 struct VideoType;
+struct VideoCodec;
+struct PixelFormat;
 
 enum FpMode { fp32, fp16 }
 
